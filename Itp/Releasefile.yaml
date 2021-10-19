@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-N337PT7:5516/
 # Release version:      10.3.0
-# Date created:         Tue Oct 19 09:51:35 CEST 2021
+# Date created:         Tue Oct 19 10:00:39 CEST 2021
 
 ---
 apiVersion: xl-release/v1
@@ -10,9 +10,10 @@ metadata:
 spec:
 - name: https://github.com/svenatdigitalai/gitopstest2.git
   type: git.Repository
+  variableMapping:
+    password: "${global.githubtoken}"
   url: https://github.com/svenatdigitalai/gitopstest2.git
   username: svenatdigitalai
-  password: !value "git_Repository_https___github_com_svenatdigitalai_gitopstest2_git_password"
 - template: test
   scheduledStartDate: 2021-10-19T09:00:00+02:00
   phases:
@@ -20,6 +21,7 @@ spec:
     tasks:
     - name: Test Task
       type: xlrelease.Task
+  - phase: New Phase
   riskProfile: Default risk profile
 - notifications:
   - notification: TASK_OVERDUE
