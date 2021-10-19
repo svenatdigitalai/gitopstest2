@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-N337PT7:5516/
 # Release version:      10.3.0
-# Date created:         Tue Oct 19 09:51:08 CEST 2021
+# Date created:         Tue Oct 19 09:51:35 CEST 2021
 
 ---
 apiVersion: xl-release/v1
@@ -17,6 +17,9 @@ spec:
   scheduledStartDate: 2021-10-19T09:00:00+02:00
   phases:
   - phase: New Phase
+    tasks:
+    - name: Test Task
+      type: xlrelease.Task
   riskProfile: Default risk profile
 - notifications:
   - notification: TASK_OVERDUE
