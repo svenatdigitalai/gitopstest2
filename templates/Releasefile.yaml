@@ -1,21 +1,29 @@
 # Exported from:        http://DESKTOP-N337PT7:5516/
 # Release version:      22.0.1
-# Date created:         Tue Mar 01 10:49:01 CET 2022
+# Date created:         Tue Mar 01 10:51:43 CET 2022
 
 ---
 apiVersion: xl-release/v1
 kind: Templates
 metadata:
-  home: prod
+  home: dev
 spec:
+- template: template 2
+  scheduledStartDate: 2022-03-01T09:00:00+01:00
+  phases:
+  - phase: New Phase
+  riskProfile: Default risk profile
 - template: template test
   scheduledStartDate: 2022-03-01T09:00:00+01:00
+  dueDate: 2022-03-01T10:00:00+01:00
   phases:
   - phase: New Phase
     tasks:
     - name: dede
       type: xlrelease.Task
   - phase: phase 2
+  - phase: phase 3
+    color: '#3d6c9e'
   riskProfile: Default risk profile
 - notifications:
   - notification: TASK_OVERDUE
