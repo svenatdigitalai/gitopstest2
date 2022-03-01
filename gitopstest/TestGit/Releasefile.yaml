@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-N337PT7:5516/
 # Release version:      22.0.1
-# Date created:         Tue Mar 01 10:08:47 CET 2022
+# Date created:         Tue Mar 01 10:22:58 CET 2022
 
 ---
 apiVersion: xl-release/v1
@@ -17,6 +17,8 @@ spec:
     tasks:
     - name: de
       type: xlrelease.Task
+    color: '#3d6c9e'
+  - phase: ühase 3
     color: '#3d6c9e'
   riskProfile: Default risk profile
 - template: template3
