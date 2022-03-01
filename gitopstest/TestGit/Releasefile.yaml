@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-N337PT7:5516/
 # Release version:      22.0.1
-# Date created:         Tue Mar 01 09:11:33 CET 2022
+# Date created:         Tue Mar 01 10:02:48 CET 2022
 
 ---
 apiVersion: xl-release/v1
@@ -8,6 +8,16 @@ kind: Templates
 metadata:
   home: gitopstest
 spec:
+- template: sven template 2
+  scheduledStartDate: 2022-03-01T09:00:00+01:00
+  phases:
+  - phase: New Phase
+  - phase: phase2
+    tasks:
+    - name: de
+      type: xlrelease.Task
+    color: '#3d6c9e'
+  riskProfile: Default risk profile
 - template: test template
   scheduledStartDate: 2022-03-01T09:00:00+01:00
   phases:
