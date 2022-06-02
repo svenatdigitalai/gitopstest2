@@ -1,12 +1,12 @@
 # Exported from:        http://DESKTOP-N337PT7:5516/
 # Release version:      22.0.1
-# Date created:         Tue Mar 01 10:22:58 CET 2022
+# Date created:         Thu Jun 02 14:04:22 CEST 2022
 
 ---
 apiVersion: xl-release/v1
 kind: Templates
 metadata:
-  home: foldertest
+  home: gitopstest
 spec:
 - template: sven template 2
   scheduledStartDate: 2022-03-01T09:00:00+01:00
@@ -23,6 +23,7 @@ spec:
   riskProfile: Default risk profile
 - template: template3
   scheduledStartDate: 2022-03-01T09:00:00+01:00
+  dueDate: 2022-03-01T10:00:00+01:00
   phases:
   - phase: New Phase
   - phase: phase in template3
