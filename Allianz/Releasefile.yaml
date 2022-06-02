@@ -1,0 +1,795 @@
+# Exported from:        http://DESKTOP-N337PT7:5516/
+# Release version:      22.0.1
+# Date created:         Thu Jun 02 14:43:48 CEST 2022
+
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: allianz
+spec:
+- name: frfr
+  type: nexus.Server
+  url: frfr
+  username: admin
+- template: Giam Review Template Master
+  scheduledStartDate: 2022-03-15T09:00:00+01:00
+  phases:
+  - phase: Create Sub Release
+    tasks:
+    - name: Create Sub Releases
+      type: xlrelease.ScriptTask
+      script: |-
+        import sys
+        import time
+
+        ##############################################
+        generatedTaskTitle = "GiamReview" #The prefix of the generated subtasks
+        newReleaseTitle = "GiamReview" #the prefix of the generated subreleases
+        taskTitle = "Create Sub Release Blueprint" #The name of the blueprint to be used for the subreleases (found in the parallel group below)
+        taskPhase = "Create Sub Release" #the name of the phase in which the "New release" blueprint is located
+        sourceVariableName = "ListID" #the mailbox list variable name
+        ##############################################
+
+        def updateCreateReleaseVariables(newTask, varName, varValue):
+            for template_var in newTask.templateVariables:
+                if template_var.key == varName:
+                   #print("Found %s Variable setting value to %s" %(varName,varValue)
+                    template_var.value = varValue
+                    taskApi.updateTask(newTask.id, newTask)
+
+        def createTask(RVariable):
+            task = getCurrentTask()
+            comment = Comment()
+            for item in releaseVariables[RVariable]:
+                print("Generating Release for %s" % (item))
+                NEW_TASK_TITLE = "%s %s" % (generatedTaskTitle, str(item))
+                NEW_RELEASE_TITLE = "%s %s" % (newReleaseTitle, str(item))
+                comment.setComment(str(item))
+                taskApi.commentTask(task.id,comment)
+                comment.setComment(NEW_TASK_TITLE)
+                taskApi.commentTask(task.id,comment)
+                generated_task = create_release_task_template
+                generated_task.title = NEW_TASK_TITLE
+                generated_task.newReleaseTitle = NEW_RELEASE_TITLE
+                newTask = taskApi.addTask(create_release_tasks_parent_id, generated_task)
+                # updateCreateReleaseVariables(newTask, "passedFromMaster", "ValueFromMaster")
+                #releaseVariables['subList'].append(releaseVariables['subReleaseID'])
+                #releaseVariables['subList'].append(generated_task.newReleaseID)
+                #releaseVariables['taskList'].append(generated_task.id)
+                time.sleep(10)
+
+        # Script constants
+        print(' variable are {} {} {}'.format(taskTitle, taskPhase, release.id))
+        print(' source variables are  {}'.format(sourceVariableName))
+        create_release_task_template = taskApi.searchTasksByTitle(
+            taskTitle, taskPhase, release.id)[0]
+        print('create template are {}'.format(create_release_task_template.id))
+        create_release_tasks_parent_id = create_release_task_template.id[:create_release_task_template.id.rindex(
+            '/')]
+        print 'parent id',create_release_tasks_parent_id
+        create_release_task_template_id = create_release_task_template.id
+        print 'release task template id',create_release_task_template_id
+
+        # Script Execution
+        createTask(sourceVariableName)
+        # delete the template task as it's done its job
+        taskApi.delete(create_release_task_template_id)
+        print 'finish'
+    - name: Sub Releases
+      type: xlrelease.SequentialGroup
+      tasks:
+      - name: Create Sub Release Blueprint
+        type: xlrelease.CreateReleaseTask
+        templateVariables:
+        - type: xlrelease.StringVariable
+          key: MasterID
+          value: "${release.id}"
+        riskProfile: Default risk profile
+        template: Applications/Folder15b4245b37c146219d18b27d17f24381/Foldera3cd26628ab84983992a2cb28c976079/Release634019fa664f492eaf16e11fdb9f2763
+    color: '#0079BC'
+  - phase: GIAM
+    tasks:
+    - name: wait
+      type: xlrelease.ScriptTask
+      script: |-
+        import time
+        time.sleep(30)
+
+        print(releaseVariables['subResults'])
+        print(type(releaseVariables['subResults']))
+    - name: Convert string to dict
+      type: xlrelease.ScriptTask
+      script: |-
+        listOfStringsToConvert = releaseVariables['subResults']
+        print(listOfStringsToConvert[0])
+
+        return_list = []
+        for stringToConvert in listOfStringsToConvert:
+            stringToConvert = str(stringToConvert)
+            return_dict = {}
+            print('converting {}'.format(stringToConvert[1:-1].split(',')))
+            for item in stringToConvert[1:-1].split(','):
+                print('item is {}'.format(item))
+                items = item.split('=')
+                print('items is {}'.format(items))
+
+                # remove possible blank characters
+                items[0] = items[0].lstrip(' ').rstrip(' ')
+
+                return_dict[items[0]] = items[1]
+
+                print('dict is {}'.format(return_dict))
+
+            return_list.append(return_dict)
+
+        releaseVariables['accountsList']=return_list
+        print(releaseVariables['accountsList'])
+    - name: Read Group members
+      type: xlrelease.Task
+      flagStatus: ATTENTION_NEEDED
+      flagComment: Task 'Read Group members' in Phase 'GIAM' has been replaced by
+        a manual task. The task of type 'giam.ReadGroupMembers' could not be found
+        because of a missing plugin.
+      variableMapping:
+        pythonScript.existing_acc_list: "${existingAccounts}"
+        pythonScript.to_be_added_acc_list: "${nonexistingAccounts}"
+        pythonScript.account_list: "${accountsList}"
+    - name: Add bulk members
+      type: xlrelease.Task
+      flagStatus: ATTENTION_NEEDED
+      flagComment: Task 'Add bulk members' in Phase 'GIAM' has been replaced by a
+        manual task. The task of type 'giam.AddBulkMembers' could not be found because
+        of a missing plugin.
+      variableMapping:
+        pythonScript.add_create_return: "${createdAccounts}"
+        pythonScript.add_account_list: "${nonexistingAccounts}"
+    color: '#0079BC'
+  realFlagStatus: ATTENTION_NEEDED
+  variables:
+  - type: xlrelease.StringVariable
+    key: SharePointListName
+    value: nikolaSchedulingList
+  - type: xlrelease.StringVariable
+    key: FilterCriteria
+  - type: xlrelease.ListStringVariable
+    key: retrievedIds
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: ListID
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: subList
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: subResults
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: existingAccounts
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: nonexistingAccounts
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: createdAccounts
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.MapStringStringVariable
+    key: subResult2
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.ListStringVariable
+    key: accountsList
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: RVariable
+    requiresValue: false
+    showOnReleaseStart: false
+    valueProvider:
+      type: xlrelease.ListOfStringValueProviderConfiguration
+      values:
+      - "1"
+      - "2"
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_Giam_Review_Template_Master_scriptUserPassword"
+  riskProfile: Default risk profile
+- template: Giam Review Template Slubrelease
+  scheduledStartDate: 2022-03-16T09:00:00+01:00
+  phases:
+  - phase: New Phase
+    tasks:
+    - name: Connect to Master Template
+      type: xlrelease.ScriptTask
+      script: |-
+        import sys
+
+        rvar = releaseApi.getVariables(releaseVariables['MasterID'])
+        vartoupdate = [item for item in rvar if item.key=='subList'][0]
+        print(vartoupdate.value)
+        vartoupdate.value = vartoupdate.value + release.id.split()
+        releaseApi.updateVariable(vartoupdate)
+    - name: Get List ID
+      type: xlrelease.ScriptTask
+      script: "releaseVariables['subID'] = release.title.split(\" \")[1]"
+    - name: Retrieve List Item from ID
+      type: xlrelease.Task
+      flagStatus: ATTENTION_NEEDED
+      flagComment: Task 'Retrieve List Item from ID' in Phase 'New Phase' has been
+        replaced by a manual task. The task of type 'sharepoint.ReadListItem' could
+        not be found because of a missing plugin.
+      variableMapping:
+        pythonScript.data: "${subreleaseMapping}"
+    - name: send back values
+      type: xlrelease.ScriptTask
+      script: |-
+        import sys
+
+        print(releaseVariables['subreleaseMapping'])
+
+        if 'Mail' in  releaseVariables['subreleaseMapping'] and 'samAccountName' in  releaseVariables['subreleaseMapping']:
+            temp_dict = {
+                'Mail': releaseVariables['subreleaseMapping']['Mail'],
+                'samAccountName' : releaseVariables['subreleaseMapping']['samAccountName']
+            }
+        elif 'Mail' in  releaseVariables['subreleaseMapping']:
+            temp_dict = {
+                'Mail': releaseVariables['subreleaseMapping']['Mail'],
+                'samAccountName' : ""
+            }
+        elif 'samAccountName' in  releaseVariables['subreleaseMapping']:
+            temp_dict = {
+                'Mail': "",
+                'samAccountName' : releaseVariables['subreleaseMapping']['samAccountName']
+            }
+
+        print(type(temp_dict))
+        rvar = releaseApi.getVariables(releaseVariables['MasterID'])
+        vartoupdate = [item for item in rvar if item.key=='subResults'][0]
+        print(type(vartoupdate))
+        print(vartoupdate.value)
+        print('return dict is {} {}'.format(releaseVariables['returnDict'], temp_dict))
+        temp = vartoupdate.value
+        print(type(temp))
+        temp.append(temp_dict)
+        print(type(temp))
+        print(temp)
+        vartoupdate.value = temp
+        print(vartoupdate.value)
+        print(type(vartoupdate.value))
+        #vartoupdate.value = releaseVariables['returnDict']
+
+        releaseApi.updateVariable(vartoupdate)
+    color: '#3d6c9e'
+  realFlagStatus: ATTENTION_NEEDED
+  variables:
+  - type: xlrelease.StringVariable
+    key: MasterID
+  - type: xlrelease.StringVariable
+    key: subID
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.MapStringStringVariable
+    key: subreleaseMapping
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.MapStringStringVariable
+    key: returnDict
+    requiresValue: false
+    showOnReleaseStart: false
+  riskProfile: Default risk profile
+- template: master
+  scheduledStartDate: 2022-03-25T09:00:00+01:00
+  phases:
+  - phase: New Phase
+    tasks:
+    - name: wait
+      type: xlrelease.Task
+  variables:
+  - type: xlrelease.ListStringVariable
+    key: listVar
+    requiresValue: false
+    showOnReleaseStart: false
+    value:
+    - "2"
+    - "4"
+    - "1"
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_master_scriptUserPassword"
+  riskProfile: Default risk profile
+- template: sub
+  scheduledStartDate: 2022-03-25T09:00:00+01:00
+  phases:
+  - phase: New Phase
+    tasks:
+    - name: script
+      type: xlrelease.ScriptTask
+      scheduledStartDate: 2022-03-25T09:00:00+01:00
+      script: |-
+        import sys
+
+        print(releaseVariables['subreleaseMapping'])
+
+        if 'Mail' in  releaseVariables['subreleaseMapping'] and 'samAccountName' in  releaseVariables['subreleaseMapping']:
+            temp_dict = {
+                'Mail': releaseVariables['subreleaseMapping']['Mail'],
+                'samAccountName' : releaseVariables['subreleaseMapping']['samAccountName']
+            }
+        elif 'Mail' in  releaseVariables['subreleaseMapping']:
+            temp_dict = {
+                'Mail': releaseVariables['subreleaseMapping']['Mail'],
+                'samAccountName' : ""
+            }
+        elif 'samAccountName' in  releaseVariables['subreleaseMapping']:
+            temp_dict = {
+                'Mail': "",
+                'samAccountName' : releaseVariables['subreleaseMapping']['samAccountName']
+            }
+
+        print(type(temp_dict))
+        rvar = releaseApi.getVariables(releaseVariables['MasterID'])
+        vartoupdate = [item for item in rvar if item.key=='listVar'][0]
+        print(type(vartoupdate))
+        print(vartoupdate.value)
+        print('return dict is {} {}'.format(releaseVariables['returnDict'], temp_dict))
+        temp = vartoupdate.value
+        print(type(temp))
+        temp.append(temp_dict)
+        print(type(temp))
+        print(temp)
+        vartoupdate.value = temp
+        print(vartoupdate.value)
+        print(type(vartoupdate.value))
+        #vartoupdate.value = releaseVariables['returnDict']
+
+        releaseApi.updateVariable(vartoupdate)
+
+
+        print eins['zwei']
+    - name: wait
+      type: xlrelease.Task
+  variables:
+  - type: xlrelease.ListStringVariable
+    key: temp_dict
+    requiresValue: false
+    showOnReleaseStart: false
+    value:
+    - wert
+    - aus
+    - sub
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_sub_scriptUserPassword"
+  riskProfile: Default risk profile
+- template: variable test
+  scheduledStartDate: 2022-05-20T09:00:00+02:00
+  phases:
+  - phase: New Phase
+    tasks:
+    - name: script 1
+      type: xlrelease.ScriptTask
+      script: |-
+        myList = ['Python', 'C++', 'JavaScript']
+
+        releaseVariables['testList'] = myList
+
+        print(releaseVariables['testList'])
+    - name: script 2
+      type: xlrelease.ScriptTask
+      script: |-
+        myList = releaseVariables['testList']
+
+        print(myList)
+    - name: wait
+      type: xlrelease.Task
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_variable_test_scriptUserPassword"
+  riskProfile: Default risk profile
+- name: go
+  type: xlrelease.BlankDashboard
+  owner: admin
+- directory: test
+  children:
+  - notifications:
+    - notification: TASK_OVERDUE
+      priority: High
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release is overdue.
+
+        After the task is completed, please mark it as Completed in Release.
+      roles:
+      - Watcher
+      - Release Admin
+      - Task Owner
+    - notification: TASK_FLAGGED
+      priority: High
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The status of the **${task.title}** task in the **${release.title}** release was changed to **${task.flagStatus}** with the following comment:
+
+        **${release.flagComment}**
+      roles:
+      - Watcher
+      - Release Admin
+      - Task Team
+    - notification: AUDIT_REPORT_JOB_ABORTED
+      priority: Normal
+      subject: "[Release] Audit report was aborted"
+      body: |-
+        **Your audit report was aborted!**
+
+         Please try to generate it again or contact your Release administrator for assistance.
+    - notification: MANUAL_TASK_STARTED
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release has started and is assigned to you or your team.
+
+        After the task is completed, please mark it as Completed in Release.
+      roles:
+      - Watcher
+      - Task Owner
+    - notification: TASK_FAILED
+      priority: High
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release has failed.
+
+        Other tasks could still be in progress, but the release will stop after they complete.
+
+        You can retry the task, reassign it to somebody else or abort the release.
+      roles:
+      - Watcher
+      - Task Team
+      - Task Owner
+    - notification: USER_MENTIONED
+      priority: Normal
+      subject: "[Release] ${mentionedByFullName} mentioned you on ${release.title}:\
+        \ ${task.title}"
+      body: "**${mentionedByFullName}** mentioned you on the **${task.title}** task\
+        \ in the **${release.title}** release:"
+    - notification: COMMENT_ADDED
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        **${comment.authorFullName}** commented on the **${task.title}** task in the **${release.title}** release:
+
+        ${comment.text}
+      roles:
+      - Watcher
+      - Task Team
+      - Task Owner
+    - notification: AUDIT_REPORT_JOB_FAILED
+      priority: Normal
+      subject: "[Release] Audit report has failed"
+      body: |-
+        **Your audit report has failed!**
+
+         Please try to generate it again or contact your Release administrator for assistance.
+    - notification: RELEASE_FAILED
+      priority: High
+      subject: "[Release] ${release.title}"
+      body: |-
+        The **${release.title}** release has failed due to a task failure.
+
+        The release is now stopped.
+
+        You can retry the failed task, reassign it to somebody else or abort the release.
+      roles:
+      - Release Admin
+    - notification: TASK_DUE_SOON
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release is due in **${task.dueInHours}** hours and **${task.dueInMinutes}** minutes.
+
+        After the task is completed, please mark it as Completed in Release.
+      roles:
+      - Watcher
+      - Release Admin
+      - Task Owner
+    - notification: ACTIVE_TASK_UNASSIGNED
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release is active but not assigned to anyone anymore.
+
+        Please assign the task to a user or a team.
+      roles:
+      - Watcher
+      - Task Team
+      - Task Owner
+    - notification: RELEASE_FAILING
+      priority: High
+      subject: "[Release] ${release.title}"
+      body: |-
+        The **${release.title}** release is failing due to a task failure.
+
+        Other tasks may still be in progress, but the release will stop after they complete.
+
+        You can retry the failed task, reassign it to somebody else or abort the release.
+      roles:
+      - Release Admin
+    - notification: RELEASE_FLAGGED
+      priority: High
+      subject: "[Release] ${release.title}"
+      body: |-
+        The status of the **${release.title}** release was changed to **${release.flagStatus}** with the following comment:
+
+        **${release.flagComment}**
+      roles:
+      - Release Admin
+    - notification: MANUAL_TASK_STARTED_WITHOUT_OWNER
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release has started, but it is not assigned.
+
+        Please assign the task to a user or a team.
+      roles:
+      - Watcher
+      - Release Admin
+    - notification: RELEASE_COMPLETED
+      priority: Normal
+      subject: "[Release] ${release.title}"
+      body: "The **${release.title}** release has been completed."
+      roles:
+      - Release Admin
+    - notification: TASK_WAITING_FOR_INPUT
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: |-
+        The **${task.title}** task in the **${release.title}** release needs your input.
+
+        Please enter the required information so the release can continue.
+      roles:
+      - Watcher
+      - Task Team
+      - Task Owner
+    - notification: AUDIT_REPORT_JOB_COMPLETED
+      priority: Normal
+      subject: "[Release] Report '${report.reportName}' is ready"
+      body: |-
+        **Your audit report is complete!**
+
+         '${report.reportName}' is ready for download.
+    - notification: RELEASE_STARTED
+      priority: Normal
+      subject: "[Release] ${release.title}"
+      body: "The **${release.title}** release has been started."
+      bulkSubject: "[Release] Multiple releases started"
+      bulkBody: |-
+        The following releases have been started:
+
+        ${#releases}
+        * [${title}](${url})
+        ${/releases}
+      roles:
+      - Release Admin
+    - notification: RELEASE_ABORTED
+      priority: Normal
+      subject: "[Release] ${release.title}"
+      body: "The **${release.title}** release has been aborted."
+      bulkSubject: "[Release] Multiple releases aborted"
+      bulkBody: |-
+        The following releases have been aborted:
+
+        ${#releases}
+        * [${title}](${url})
+        ${/releases}
+      roles:
+      - Release Admin
+    - notification: ACTIVE_TASK_ASSIGNED
+      priority: Normal
+      subject: "[Release] ${release.title}: ${task.title}"
+      body: "The active task **${task.title}** in the **${release.title}** release\
+        \ is now assigned to ${task.ownerFullName}."
+      roles:
+      - Watcher
+      - Task Team
+      - Task Owner
+- notifications:
+  - notification: TASK_OVERDUE
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is overdue.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Owner
+  - notification: TASK_FLAGGED
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The status of the **${task.title}** task in the **${release.title}** release was changed to **${task.flagStatus}** with the following comment:
+
+      **${release.flagComment}**
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Team
+  - notification: AUDIT_REPORT_JOB_ABORTED
+    priority: Normal
+    subject: "[Release] Audit report was aborted"
+    body: |-
+      **Your audit report was aborted!**
+
+       Please try to generate it again or contact your Release administrator for assistance.
+  - notification: MANUAL_TASK_STARTED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has started and is assigned to you or your team.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Task Owner
+  - notification: TASK_FAILED
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has failed.
+
+      Other tasks could still be in progress, but the release will stop after they complete.
+
+      You can retry the task, reassign it to somebody else or abort the release.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: USER_MENTIONED
+    priority: Normal
+    subject: "[Release] ${mentionedByFullName} mentioned you on ${release.title}:\
+      \ ${task.title}"
+    body: "**${mentionedByFullName}** mentioned you on the **${task.title}** task\
+      \ in the **${release.title}** release:"
+  - notification: COMMENT_ADDED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      **${comment.authorFullName}** commented on the **${task.title}** task in the **${release.title}** release:
+
+      ${comment.text}
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: AUDIT_REPORT_JOB_FAILED
+    priority: Normal
+    subject: "[Release] Audit report has failed"
+    body: |-
+      **Your audit report has failed!**
+
+       Please try to generate it again or contact your Release administrator for assistance.
+  - notification: RELEASE_FAILED
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The **${release.title}** release has failed due to a task failure.
+
+      The release is now stopped.
+
+      You can retry the failed task, reassign it to somebody else or abort the release.
+    roles:
+    - Release Admin
+  - notification: TASK_DUE_SOON
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is due in **${task.dueInHours}** hours and **${task.dueInMinutes}** minutes.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Owner
+  - notification: ACTIVE_TASK_UNASSIGNED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is active but not assigned to anyone anymore.
+
+      Please assign the task to a user or a team.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: RELEASE_FAILING
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The **${release.title}** release is failing due to a task failure.
+
+      Other tasks may still be in progress, but the release will stop after they complete.
+
+      You can retry the failed task, reassign it to somebody else or abort the release.
+    roles:
+    - Release Admin
+  - notification: RELEASE_FLAGGED
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The status of the **${release.title}** release was changed to **${release.flagStatus}** with the following comment:
+
+      **${release.flagComment}**
+    roles:
+    - Release Admin
+  - notification: MANUAL_TASK_STARTED_WITHOUT_OWNER
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has started, but it is not assigned.
+
+      Please assign the task to a user or a team.
+    roles:
+    - Watcher
+    - Release Admin
+  - notification: RELEASE_COMPLETED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been completed."
+    roles:
+    - Release Admin
+  - notification: TASK_WAITING_FOR_INPUT
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release needs your input.
+
+      Please enter the required information so the release can continue.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: AUDIT_REPORT_JOB_COMPLETED
+    priority: Normal
+    subject: "[Release] Report '${report.reportName}' is ready"
+    body: |-
+      **Your audit report is complete!**
+
+       '${report.reportName}' is ready for download.
+  - notification: RELEASE_STARTED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been started."
+    bulkSubject: "[Release] Multiple releases started"
+    bulkBody: |-
+      The following releases have been started:
+
+      ${#releases}
+      * [${title}](${url})
+      ${/releases}
+    roles:
+    - Release Admin
+  - notification: RELEASE_ABORTED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been aborted."
+    bulkSubject: "[Release] Multiple releases aborted"
+    bulkBody: |-
+      The following releases have been aborted:
+
+      ${#releases}
+      * [${title}](${url})
+      ${/releases}
+    roles:
+    - Release Admin
+  - notification: ACTIVE_TASK_ASSIGNED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: "The active task **${task.title}** in the **${release.title}** release is\
+      \ now assigned to ${task.ownerFullName}."
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
