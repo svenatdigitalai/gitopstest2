@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-E0NPCHG:5516/
 # Release version:      23.3.0
-# Date created:         Wed Jan 24 09:58:00 CET 2024
+# Date created:         Wed Jan 24 13:55:16 CET 2024
 
 ---
 apiVersion: xl-release/v1
@@ -16,6 +16,12 @@ spec:
     - name: ok
       type: jenkins.Build
       jenkinsServer: TEST Jenkins
+      variableMapping:
+        pythonScript.jenkinsServer: "${testConnection}"
+  variables:
+  - type: xlrelease.ReferenceVariable
+    key: testConnection
+    referencedType: jenkins.Server
   riskProfile: Default risk profile
   author: admin
   defaultTargetFolder: ./
