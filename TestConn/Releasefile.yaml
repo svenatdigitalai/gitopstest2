@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-E0NPCHG:5516/
 # Release version:      23.3.3
-# Date created:         Thu Jan 25 08:38:45 CET 2024
+# Date created:         Thu Jan 25 08:40:42 CET 2024
 
 ---
 apiVersion: xl-release/v1
@@ -22,6 +22,7 @@ spec:
     key: testConnection
     requiresValue: false
     showOnReleaseStart: false
+    value: Configuration/Custom/Configuration5615256306e44a3eb4ac8cf1ed78c8ed
     referencedType: jenkins.Server
   riskProfile: Default risk profile
   author: admin
