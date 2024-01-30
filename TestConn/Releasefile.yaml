@@ -1,6 +1,6 @@
 # Exported from:        http://DESKTOP-E0NPCHG:5516/
 # Release version:      23.3.3
-# Date created:         Tue Jan 30 16:12:32 CET 2024
+# Date created:         Tue Jan 30 16:17:20 CET 2024
 
 ---
 apiVersion: xl-release/v1
@@ -15,8 +15,6 @@ spec:
     tasks:
     - name: build
       type: jenkins.Build
-      variableMapping:
-        pythonScript.jenkinsServer: "${storesConnection}"
   variables:
   - type: xlrelease.ReferenceVariable
     key: storesConnection
